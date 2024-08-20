@@ -1,6 +1,6 @@
 import { v2 as cloudinary } from 'cloudinary';
-import dotenv from 'dotenv';
-import fs from 'fs'
+import * as dotenv from 'dotenv';
+import * as fs from 'fs'
 dotenv.config();
 
 //configuration
@@ -11,7 +11,7 @@ cloudinary.config({
 });
 
 //saving image in the cloud
-const uploadOnCloudinary = async(localFilePath)=>{
+const uploadOnCloudinary = async(localFilePath:string)=>{
     try{
         if(!localFilePath) return null
         //uploading the file on cloudinary

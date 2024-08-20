@@ -7,9 +7,9 @@ app.use(express.urlencoded({extended: true }));
 app.use(cors())
 
 //routes import
-import userRouter from './routes/user-router.js'
+import userRouter from './routes/user-router'
 
 //routes declaration
 app.use('/api/v1',userRouter);
 
-export {app}
+export default app

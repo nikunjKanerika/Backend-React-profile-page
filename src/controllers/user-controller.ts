@@ -1,21 +1,22 @@
+import { Request, Response } from "express";
 import User from "../models/user-model.js"
 import uploadOnCloudinary from "../utils/cloudinary-config.js";
 
 
 //Retrieving users 
-export const getUsers = async (req,res) =>{
+export const getUsers = async (req:Request,res:Response) => {
 
     try{
         const users = await User.find();
-        return res.status(200).json({messgae: 'here are users',users});
+        res.status(200).json({messgae: 'here are users',users});
     }catch(error){
-        return res.status(500).json({message: 'Error in finding the user'});
+        res.status(500).json({message: 'Error in finding the user'});
     }
 }
 
 
 //Saving user in database
-export const saveUser = async (req,res) =>{
+export const saveUser = async (req:Request | any,res:Response | any) =>{
 
     
     try{
@@ -47,14 +48,14 @@ export const saveUser = async (req,res) =>{
         await user.save();
          
         return res.status(201).json({message: 'user created succesfully',user});
-    }catch(error){
+    }catch(error: any){
         return res.status(500).json({message: 'Failed to save user', errorMsg:error.message}) 
     }
 }
 
 
 //Saving each user links
-export const saveUserLinks = async(req,res) =>{
+export const saveUserLinks = async(req:Request,res:Response) =>{
 
     const {firstName, userLinks} = req.body;
  
@@ -78,7 +79,7 @@ export const saveUserLinks = async(req,res) =>{
 
 
 //Retrieving user by first name
-export const getUser = async (req, res) => {
+export const getUser = async (req:Request,res:Response) => {
     const { firstName } = req.params;
     try {
         const user = await User.findOne({ firstName });
