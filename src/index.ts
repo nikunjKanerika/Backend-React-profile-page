@@ -11,6 +11,8 @@ const PORT: number = Number(process.env.PORT) || 8001;
 // Connect to the database
 Connection();
 
+import logger from './utils/logger';
+
 app.listen(PORT, () => {
-    console.log(`Server connected on port ${PORT}`);
+    logger.info(`server running at port ${PORT}`);
 });

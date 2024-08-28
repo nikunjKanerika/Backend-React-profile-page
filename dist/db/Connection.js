@@ -22,21 +22,31 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Connection = void 0;
-const mongoose = __importStar(require("mongoose"));
+exports.Connection = exports.client = void 0;
 const dotenv = __importStar(require("dotenv"));
+const pg_1 = require("pg");
+const logger_1 = __importDefault(require("../utils/logger"));
 dotenv.config();
 const DB_USERNAME = process.env.DB_USERNAME;
 const DB_PASSWORD = process.env.DB_PASSWORD;
+const DATABASE = process.env.DATABASE;
+const DATABASE_PORT = process.env.DATABASE_PORT;
+const HOST = process.env.HOST;
+exports.client = new pg_1.Client({
+    host: HOST,
+    port: Number(DATABASE_PORT),
+    user: DB_USERNAME,
+    password: DB_PASSWORD,
+    database: DATABASE
+});
 const Connection = () => {
-    mongoose
-        .connect(`mongodb+srv://${DB_USERNAME}:${DB_PASSWORD}@cluster0.jarys.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`)
-        .then(() => console.log('Database connected successfully'))
-        .catch((err) => {
-        console.log('Error while connecting to database', err);
-        throw err;
-    });
+    exports.client.connect()
+        .then(() => logger_1.default.info('Database connected successfully'))
+        .catch(() => logger_1.default.error('Error while connection'));
 };
 exports.Connection = Connection;
 //# sourceMappingURL=Connection.js.map

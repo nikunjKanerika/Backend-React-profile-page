@@ -34,7 +34,8 @@ dotenv.config();
 const PORT = Number(process.env.PORT) || 8001;
 // Connect to the database
 (0, Connection_1.Connection)();
+const logger_1 = __importDefault(require("./utils/logger"));
 app_1.default.listen(PORT, () => {
-    console.log(`Server connected on port ${PORT}`);
+    logger_1.default.info(`server running at port ${PORT}`);
 });
 //# sourceMappingURL=index.js.map

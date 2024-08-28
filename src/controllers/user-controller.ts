@@ -1,98 +1,123 @@
-import { Request, Response } from "express";
-import User from "../models/user-model.js"
-import uploadOnCloudinary from "../utils/cloudinary-config.js";
-
-
+import { NextFunction, Request, Response } from "express";
+import uploadOnCloudinary from "../utils/cloudinary-config";
+import {client} from '../db/Connection'
+import asyncErrorHandler from "../utils/asyncErrorHandler";
+import CustomError from "../utils/CustomError";
+import { IGetUserAuthInfoRequest } from '../middlewares/auth-middleware';
 //Retrieving users 
-export const getUsers = async (req:Request,res:Response) => {
-
-    try{
-        const users = await User.find();
-        res.status(200).json({messgae: 'here are users',users});
-    }catch(error){
-        res.status(500).json({message: 'Error in finding the user'});
-    }
-}
+export const getUsers = asyncErrorHandler(async (req:Request,res:Response, next:NextFunction) => {
+  
+    const result = await client.query('select * from users');
+    res.status(200).json(result.rows);
+    
+})
 
 
 //Saving user in database
-export const saveUser = async (req:Request | any,res:Response | any) =>{
+export const saveUser = asyncErrorHandler( async (req:Request | any,res:Response, next:NextFunction) =>{
 
-    
-    try{
-        const {firstName, lastName, email } = req.body;
-         if(!firstName || !lastName || !email){
-            return res.status(400).json({message: 'send the valid data'})
-         }
-        
-        let profileUrl = '';
-        
-        if (req.file && req.file.path) {
-            const uploadResult = await uploadOnCloudinary(req.file.path);
+    const {firstName, lastName, email } = req.body;
+    const {id} = req.user;
 
-            if (uploadResult && uploadResult.secure_url) {
-                profileUrl = uploadResult.secure_url;
-            } else {
-                return res.status(500).json({ message: 'Failed to upload image to Cloudinary' });
-            }
-        }
-
-        const user = new User({
-            firstName,
-            lastName,
-            email,
-            profileImg: profileUrl
-         })
-        
-        
-        await user.save();
-         
-        return res.status(201).json({message: 'user created succesfully',user});
-    }catch(error: any){
-        return res.status(500).json({message: 'Failed to save user', errorMsg:error.message}) 
+    if(!firstName || !lastName || !email){
+        const err = new CustomError(`Send the valid data`,400);
+        return next(err);
     }
-}
+    
+    let profileUrl = '';
+    
+    if (!req.file || !req.file.path) {
+        const err = new CustomError(`Image file not found`,400);
+        return next(err);
+    }
+    
+    const uploadResult = await uploadOnCloudinary(req.file.path);
 
+    if (!uploadResult || !uploadResult.secure_url) {
+        const err = new CustomError(`Failed to upload on cloudinary `,500);
+        return next(err);
+    } 
+    
+    profileUrl = uploadResult.secure_url;
+
+    const result = await client.query(
+        'UPDATE users SET profile_url = $1 WHERE id = $2 RETURNING *',
+        [profileUrl, id]
+    );
+
+    if (!result.rows[0]) {
+        const err = new CustomError(`Failed to update user profile`, 500);
+        return next(err);
+    }
+
+    return res.status(200).json({ message: 'Profile updated successfully' });
+    
+}
+)
 
 //Saving each user links
-export const saveUserLinks = async(req:Request,res:Response) =>{
+export const saveUserLinks = asyncErrorHandler(async(req:IGetUserAuthInfoRequest,res:Response,next:NextFunction) =>{
 
-    const {firstName, userLinks} = req.body;
- 
-    try {
-        // Find the user by firstName and update their links
-        const user = await User.findOneAndUpdate(
-            { firstName }, 
-            { $set: { links: userLinks } },
-            { new: true, upsert: true } 
-        );
-
-        if (user) {
-            return res.status(200).json({ message: 'User links updated successfully', userLinks: user.links });
-        } else {
-            return res.status(404).json({ message: 'User not found' });
-        }
-    } catch (error) {
-        return res.status(500).json({ message: 'Failed to update user links', error });
+    const user  = req.user;
+    const {id} = user;
+    const {userLinks} = req.body
+    if(!id || !userLinks){
+        const err = new CustomError(`Send the id and userlinks`,400);
+        return next(err);
     }
-}
 
+    userLinks.map(async(link: { platform: string; url: string; })=>{
+        const platform = link.platform;
+        const url = link.url;
+        const user_id = id;
+        await client.query('insert into user_links(platform,url,user_id) values($1,$2,$3)',[platform,url,user_id]);
+    });
 
-//Retrieving user by first name
-export const getUser = async (req:Request,res:Response) => {
-    const { firstName } = req.params;
-    try {
-        const user = await User.findOne({ firstName });
-
-        if (user) {
+    res.status(201).json({message: 'Links created successfully'});
     
-            return res.status(200).json({ message: 'User links retrieved successfully', user: user });
-        } else {
-            return res.status(404).json({ message: 'User not found' });
-        }
-    } catch (error) {
+})
 
-        return res.status(500).json({ message: 'Failed to retrieve user links', error });
+
+//get user
+export const getUser = asyncErrorHandler(async (req:IGetUserAuthInfoRequest,res:Response,next:NextFunction) => {
+   const id = req.user.id;
+    
+    const user = await client.query('SELECT * FROM USERS WHERE id=$1',[id]);
+
+    if(!user){
+        const err = new CustomError(`No user with this id`,404);
+        return next(err);
     }
-};
 
+    const links = await client.query('SELECT * FROM user_links WHERE user_id=$1',[id]);
+
+    if(!links){
+        const err = new CustomError(`No links found `,404);
+        return next(err);
+    }
+    user.rows[0].links = links.rows;
+    if(user.rowCount) res.json({user: user.rows[0]});
+ 
+});
+
+export const deleteLink = asyncErrorHandler(async(req: Request, res: Response, next:NextFunction) =>{
+
+    const {id} = req.params;
+        
+    const result = await client.query('DELETE FROM user_links WHERE id=$1 RETURNING *',[id]);
+
+    res.status(201).json({message: 'Link deleted successfully'});
+   
+})
+
+export const getLinks = asyncErrorHandler(async(req:IGetUserAuthInfoRequest,res:Response,next:NextFunction) =>{
+    
+    const id = req.user.id
+    const result = await client.query('select * from user_links where user_id=$1',[id]);
+
+    if(!result.rows){
+        const err = new CustomError('Invalid user id',400);
+        return next(err);
+    }
+    res.status(200).json({links:result.rows});  
+})
