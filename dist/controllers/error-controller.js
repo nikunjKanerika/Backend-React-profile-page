@@ -31,17 +31,18 @@ const devErrors = (res, error) => {
 exports.default = (error, req, res, next) => {
     error.statusCode = error.statusCode || 500;
     error.status = error.status || 'error';
-    // if(process.env.NODE_ENV === 'production'){
-    //     prodErrors(res,error);
-    // }else if(process.env.NODE_ENV === 'development'){
-    //     devErrors(res,error);
-    // }
-    // else {
-    //     res.status(error.statusCode).json({
-    //         status: error.status,
-    //         message: 'An unexpected error occurred.'
-    //     });
-    // }
-    devErrors(res, error);
+    if (process.env.NODE_ENV === 'production') {
+        prodErrors(res, error);
+    }
+    else if (process.env.NODE_ENV === 'development') {
+        devErrors(res, error);
+    }
+    else {
+        res.status(error.statusCode).json({
+            status: error.status,
+            message: 'An unexpected error occurred.'
+        });
+    }
+    // devErrors(res,error);
 };
 //# sourceMappingURL=error-controller.js.map

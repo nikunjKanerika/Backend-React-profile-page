@@ -32,7 +32,7 @@ exports.signUp = (0, asyncErrorHandler_1.default)((req, res) => __awaiter(void 0
 //Login the user
 exports.login = (0, asyncErrorHandler_1.default)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     const { email, password } = req.body;
-    const result = yield Connection_1.client.query('SELECT * FROM users WHERE email = $1', [email]);
+    const result = yield Connection_1.client.query('SELECT * FROM "users" WHERE email = $1', [email]);
     const user = result.rows[0];
     if (!user) {
         logger_1.default.error('User not found');

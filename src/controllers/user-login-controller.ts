@@ -30,9 +30,8 @@ export const signUp = asyncErrorHandler(async (req: Request, res: Response) => {
 export const login = asyncErrorHandler(async (req: Request, res: Response, next:NextFunction) => {
     const { email, password } = req.body;
 
-    const result = await client.query('SELECT * FROM users WHERE email = $1', [email]);
+    const result = await client.query('SELECT * FROM "users" WHERE email = $1', [email]);
     const user = result.rows[0];
-
     if (!user) {
         logger.error('User not found');
         return res.status(400).json({ errorMsg: 'User not found' });
