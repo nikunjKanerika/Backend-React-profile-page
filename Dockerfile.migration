@@ -15,11 +15,8 @@ COPY . .
 # Compile TypeScript to JavaScript
 RUN npm run build
 
-# Run migrations
-# RUN npx knex migrate:latest --knexfile ./knexfile.ts --cwd .
-
 # Expose the port your app runs on
 EXPOSE 8001
 
-# Define the command to run your application
+# Define the command to run your migration
 CMD ["sh", "-c", "npx knex migrate:latest"]
